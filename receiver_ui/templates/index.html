@@ -1,0 +1,104 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>LAN File Receiver</title>
+  <style>
+    :root {
+      --primary: #3B82F6;
+      --glass-bg: rgba(255, 255, 255, 0.2);
+      --glass-border: rgba(255, 255, 255, 0.25);
+    }
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      font-family: 'Inter', sans-serif;
+    }
+    body {
+      background: linear-gradient(135deg, #a8edea, #fed6e3);
+      min-height: 100vh;
+      padding: 1.5rem;
+      color: #111827;
+    }
+    .container {
+      max-width: 500px;
+      margin: auto;
+      background: var(--glass-bg);
+      border: 1px solid var(--glass-border);
+      border-radius: 1rem;
+      padding: 1.5rem;
+      box-shadow: 0 8px 32px rgba(0, 0, 0, 0.08);
+      backdrop-filter: blur(16px);
+    }
+    h2 {
+      text-align: center;
+      font-size: 1.5rem;
+      margin-bottom: 0.5rem;
+    }
+    .subtitle {
+      text-align: center;
+      font-size: 0.85rem;
+      color: #4B5563;
+      margin-bottom: 1.25rem;
+    }
+    ul {
+      list-style: none;
+      padding: 0;
+      margin: 0;
+    }
+    li {
+      background: rgba(255, 255, 255, 0.65);
+      border-radius: 0.5rem;
+      padding: 0.6rem 0.75rem;
+      margin-bottom: 0.75rem;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 0.25rem;
+    }
+    .file-name {
+      font-size: 0.9rem;
+      font-weight: 500;
+      color: #1F2937;
+      flex: 1 1 100%;
+    }
+    .file-meta {
+      font-size: 0.75rem;
+      color: #6B7280;
+      display: flex;
+      flex-wrap: wrap;
+      gap: 1rem;
+    }
+    .no-files {
+      text-align: center;
+      font-size: 0.9rem;
+      color: #6b7280;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h2>📥 File Receiver</h2>
+    <p class="subtitle">Files are saved to <strong>Received_Files_From_Zenith</strong> at Desktop</p>
+
+    {% if files %}
+    <ul id="file-list">
+      {% for f in files %}
+        <li>
+          <div class="file-name">📄 {{ f.name }}</div>
+          <div class="file-meta">
+            <span>{{ f.received_at }}</span>
+            <span>{{ f.sender_name }} ({{ f.sender_ip }})</span>
+          </div>
+        </li>
+      {% endfor %}
+    </ul>
+    {% else %}
+      <p class="no-files">No files received yet.</p>
+    {% endif %}
+  </div>
+</body>
+</html>

@@ -1,0 +1,210 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+  <meta http-equiv="Pragma" content="no-cache">
+  <meta http-equiv="Expires" content="0">
+  <title>LAN File Sender</title>
+  <style>
+    :root {
+      --online: #10B981;
+      --offline: #EF4444;
+      --primary: #3B82F6;
+      --glass-bg: rgba(255, 255, 255, 0.15);
+      --glass-border: rgba(255, 255, 255, 0.2);
+    }
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+    }
+    body {
+      background: linear-gradient(135deg, #a8edea, #fed6e3);
+      min-height: 100vh;
+      padding: 2rem;
+      color: #111827;
+      backdrop-filter: blur(10px);
+    }
+    .container {
+      max-width: 600px;
+      margin: 0 auto;
+    }
+    header {
+      text-align: center;
+      margin-bottom: 2rem;
+    }
+    h1 {
+      font-size: 2rem;
+      margin-bottom: 0.25rem;
+      backdrop-filter: blur(4px);
+    }
+    .info {
+      font-size: 0.875rem;
+      color: #6B7280;
+      margin-top: 0.5rem;
+      margin-bottom: 1.5rem;
+    }
+    .sender-form {
+      background: var(--glass-bg);
+      border: 1px solid var(--glass-border);
+      border-radius: 1rem;
+      padding: 2rem;
+      box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+      backdrop-filter: blur(20px);
+    }
+    .form-group {
+      margin-bottom: 1.5rem;
+    }
+    label {
+      display: block;
+      margin-bottom: 0.5rem;
+      font-weight: 600;
+    }
+    select, input[type="file"] {
+      width: 100%;
+      padding: 0.6rem;
+      border: 1px solid #D1D5DB;
+      border-radius: 0.5rem;
+      background-color: rgba(255, 255, 255, 0.6);
+      backdrop-filter: blur(4px);
+    }
+    .file-drop-area {
+      border: 2px dashed #cbd5e1;
+      border-radius: 0.5rem;
+      padding: 2rem;
+      text-align: center;
+      cursor: pointer;
+      background: rgba(255, 255, 255, 0.3);
+      transition: background-color 0.3s, border-color 0.3s;
+    }
+    .file-drop-area.dragover {
+      background-color: rgba(59, 130, 246, 0.1);
+      border-color: var(--primary);
+    }
+    .submit-btn {
+      width: 100%;
+      padding: 0.8rem;
+      background-color: var(--primary);
+      color: white;
+      border: none;
+      border-radius: 0.5rem;
+      font-weight: 600;
+      cursor: pointer;
+      font-size: 1rem;
+      transition: background-color 0.3s;
+    }
+    .submit-btn:hover {
+      background-color: #2563EB;
+    }
+    .submit-btn:disabled {
+      background-color: #9CA3AF;
+      cursor: not-allowed;
+    }
+    .status-snackbar {
+  position: fixed;
+  bottom: 24px;
+  left: 50%;
+  transform: translateX(-50%);
+  background: green; /* dark gray-blue for better contrast */
+  color: #ffffff;
+  padding: 12px 28px;
+  border-radius: 9999px; /* extra pill shape */
+  font-size: 0.95rem;
+  font-weight: 500;
+  box-shadow: 0 6px 16px rgba(0, 0, 0, 0.25); /* subtle shadow for depth */
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.4s ease, transform 0.4s ease;
+  z-index: 1000;
+}
+
+    .status-snackbar.show {
+      opacity: 1;
+      pointer-events: auto;
+    }
+    
+  </style>
+</head>
+<body>
+  <div class="container">
+    <header>
+      <h1>📂 LAN File(s) Sender</h1>
+      <p class="info">The system can send various file types, including PDFs, DOCX, XLSX, TXT, images (PNG, JPG, SVG, GIF), audio (MP3, WAV), video (MP4, AVI, MKV), archives (ZIP, RAR), and code/executables (.exe, .py, .sh, etc.) on your local network.</p>
+    </header>
+
+    <form class="sender-form" method="post" enctype="multipart/form-data">
+      <div class="form-group">
+        <label for="device_ip">Select Device:</label>
+        <select id="device_ip" name="device_ip" required>
+          {% for ip, name in active_devices.items() %}
+            <option value="{{ ip }}">🟢 {{ name }} ({{ ip }}) — ON LAN</option>
+          {% endfor %}
+          {% for ip, name in inactive_devices.items() %}
+            <option value="{{ ip }}" disabled>🔴 {{ name }} ({{ ip }}) — OFF LAN</option>
+          {% endfor %}
+        </select>
+      </div>
+
+      <div class="form-group">
+        <label>Drag & Drop or Select Files:</label>
+        <div class="file-drop-area" id="drop-area">
+          <p>📁 Drop files here or click to browse</p>
+          <input type="file" name="file" id="file" style="display:none;" multiple>
+          <div id="file-list" style="margin-top: 0.5rem; font-size: 0.875rem; color: #374151;">No files selected</div>
+        </div>
+      </div>
+
+      <button type="submit" class="submit-btn" id="sendBtn">Send File(s)</button>
+    </form>
+  </div>
+
+  <div id="snackbar" class="status-snackbar"></div>
+
+<script>
+  const dropArea = document.getElementById('drop-area');
+  const fileInput = document.getElementById('file');
+  const fileList = document.getElementById('file-list');
+  const snackbar = document.getElementById('snackbar');
+
+  dropArea.addEventListener('click', () => fileInput.click());
+  fileInput.addEventListener('change', updateFileList);
+
+  dropArea.addEventListener('dragover', e => {
+    e.preventDefault();
+    dropArea.classList.add('dragover');
+  });
+  dropArea.addEventListener('dragleave', () => dropArea.classList.remove('dragover'));
+  dropArea.addEventListener('drop', e => {
+    e.preventDefault();
+    fileInput.files = e.dataTransfer.files;
+    dropArea.classList.remove('dragover');
+    updateFileList();
+  });
+
+  function updateFileList() {
+    const files = fileInput.files;
+    fileList.textContent = files.length === 0 ? 'No files selected' :
+      Array.from(files).map(f => `📄 ${f.name}`).join(', ');
+  }
+
+  const sendBtn = document.getElementById('sendBtn');
+  document.querySelector('.sender-form').addEventListener('submit', function () {
+    if (fileInput.files.length > 0) {
+      sendBtn.disabled = true;
+      sendBtn.textContent = "Sending...";
+    }
+  });
+
+ 
+  {% if status %}
+    snackbar.textContent = "{{ status.message }}";
+    snackbar.classList.add('show');
+    setTimeout(() => snackbar.classList.remove('show'), 4000);
+  {% endif %}
+</script>
+
+</body>
+</html>
